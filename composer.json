@@ -1,0 +1,15 @@
+{
+    "name": "integration-helper/base-logger",
+    "description": "Integration Helper. Base Logger",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "IntegrationHelper\\BaseLogger\\": ""
+        }
+    },
+    "minimum-stability": "dev",
+    "version": "1.0.0"
+}
