@@ -1,12 +1,13 @@
 <?php
 namespace IntegrationHelper\BaseLogger\Logger;
 
-use Laminas\Log\Writer\Stream;
-use Laminas\Log\LoggerInterface;
-use Laminas\Log\Writer\WriterInterface;
-use Laminas\Log\Logger as LaminasLogger;
-use IntegrationHelper\BaseLogger\Exceptions\LogTypeIsset;
+use Psr\Log\LoggerInterface;
 use Magento\Framework\App\ObjectManager;
+
+use Monolog\Logger as MonologLogger;
+use Monolog\Handler\StreamHandler;
+
+use IntegrationHelper\BaseLogger\Exceptions\LogTypeIsset;
 
 /**
  *
@@ -37,11 +38,6 @@ class Logger
      * @var bool
      */
     private static $loggerInit = false;
-
-    /**
-     * @var array
-     */
-    protected static $writers = [];
 
     /**
      * @var string[]
@@ -86,10 +82,10 @@ class Logger
 
         static::$logTypes[$logType] = is_object($callback) ? $callback : $logType;
         static::$filepathMap[$logType] = trim(str_replace(
-            static::DEFAULT_LOG_FOLDER,
-            '',
-            str_replace(static::LOG_FILE_FORMAT, '', $filepath)
-        ) . static::LOG_FILE_FORMAT, '/');
+                static::DEFAULT_LOG_FOLDER,
+                '',
+                str_replace(static::LOG_FILE_FORMAT, '', $filepath)
+            ) . static::LOG_FILE_FORMAT, '/');
     }
 
     /**
@@ -186,47 +182,39 @@ class Logger
 
         $logger = static::$loggers[$type] ?? false;
         if(!$logger) {
-            static::getLogger()->addWriter(static::getWriter($type));
-            static::$loggers[$type] = $logger = static::getLogger();
+            static::$loggers[$type] = $logger = static::getLogger($type);
         }
 
         if(method_exists($logger, $type)) {
             $logger->{$type}($message);
         } else if(is_object($callback)) {
-            $callback->execute(static::getLogger(), $message, $type);
+            $callback->execute(static::getLogger($type), $message, $type);
         } else {
             $logger->info($message);
         }
     }
 
     /**
+     * @param string $type
      * @return LoggerInterface
      */
-    private static function getLogger(): LoggerInterface
+    private static function getLogger(string $type): LoggerInterface
     {
         if(!static::$logger) {
-            static::$logger = new LaminasLogger();
+            static::$logger = new MonologLogger($type);
+            static::$logger->pushHandler(new StreamHandler(BP . static::getFilePath($type), MonologLogger::DEBUG));
         }
 
         return static::$logger;
     }
 
     /**
-     * @param string $type
-     * @return WriterInterface
+     * @param $logType
+     * @return string
      */
-    private static function getWriter(string $type): WriterInterface
-    {
-        if(!array_key_exists($type, static::$writers)) {
-            static::$writers[$type] = new Stream(BP . static::getFilePath($type));
-        }
-
-        return static::$writers[$type];
-    }
-
     private static function getFilePath($logType)
     {
-         return sprintf(
+        return sprintf(
             '%s/%s',
             static::DEFAULT_LOG_FOLDER,
             trim(

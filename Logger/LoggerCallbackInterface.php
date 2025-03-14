@@ -2,7 +2,8 @@
 
 namespace IntegrationHelper\BaseLogger\Logger;
 
-use Laminas\Log\LoggerInterface;
+
+use Psr\Log\LoggerInterface;
 
 interface LoggerCallbackInterface
 {
